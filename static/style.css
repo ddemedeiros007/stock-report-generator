@@ -1,0 +1,161 @@
+
+/* General Body and Layout */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc; /* Light gray background */
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align content to the top */
+    min-height: 100vh; /* Ensure it takes full viewport height */
+    overflow-y: auto; /* Allow scrolling */
+}
+
+.app-container {
+    background-color: #ffffff; /* White background for the app content */
+    padding: 2.5rem; /* Equivalent to p-10 in Tailwind */
+    border-radius: 1rem; /* Equivalent to rounded-xl */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Shadow-lg */
+    margin: 2.5rem auto; /* Center with vertical margin */
+    max-width: 90%; /* Responsive max-width */
+    width: 1000px; /* Specific width for desktop, overridden by max-width on smaller screens */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+/* Headings */
+h1 {
+    font-size: 2.5rem; /* text-4xl */
+    font-weight: 800; /* font-extrabold */
+    text-align: center;
+    color: #1a202c; /* gray-900 */
+    margin-bottom: 2rem; /* mb-8 */
+}
+
+/* Input and Button Styling (Tailwind classes handle most of this now, but here for reference) */
+input[type="text"] {
+    /* flex-grow, w-full, sm:w-3/4, md:w-1/2, p-4, border, border-gray-300, rounded-xl */
+    /* focus:outline-none, focus:ring-4, focus:ring-indigo-300, transition, duration-300, ease-in-out, shadow-sm, text-lg */
+}
+
+button {
+    /* w-full, sm:w-1/4, bg-indigo-600, hover:bg-indigo-700, text-white, font-bold, py-4, px-8, rounded-xl */
+    /* shadow-lg, transition, duration-300, ease-in-out, transform, hover:scale-105, active:scale-95 */
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    border: 4px solid rgba(99, 102, 241, 0.3); /* indigo-400 with opacity */
+    border-top: 4px solid #4f46e5; /* indigo-600 */
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Report Sections */
+.report-section {
+    background-color: #f8fafc; /* bg-gray-50 */
+    border: 1px solid #e2e8f0; /* border-gray-200 */
+    border-radius: 0.75rem; /* rounded-xl */
+    padding: 1.5rem; /* p-6 */
+    margin-bottom: 1.5rem; /* mb-6 */
+    box-shadow: inset 0 1px 3px 0 rgba(0, 0, 0, 0.05); /* shadow-inner */
+}
+
+.report-header-title {
+    font-size: 1.875rem; /* text-3xl */
+    font-weight: 700; /* font-bold */
+    color: #4338ca; /* indigo-800 */
+    margin-bottom: 1rem; /* mb-4 */
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #a5b4fc; /* indigo-200 */
+}
+
+.generated-text-block {
+    white-space: pre-wrap; /* Preserve whitespace and wrap text */
+    background-color: #edf2f7; /* gray-100 */
+    border-left: 4px solid #6366f1; /* indigo-500 */
+    padding: 1rem 1.25rem; /* p-4 px-5 */
+    border-radius: 0.5rem; /* rounded-lg */
+    font-size: 0.95rem; /* text-base */
+    color: #2d3748; /* gray-800 */
+    line-height: 1.7;
+    margin-top: 1rem; /* mt-4 */
+    box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Data points for market data and financials */
+.data-point {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #cbd5e0; /* gray-300 */
+}
+
+.data-point:last-child {
+    border-bottom: none;
+}
+
+.data-label {
+    font-weight: 500; /* font-medium */
+    color: #4a5568; /* gray-700 */
+}
+
+.data-value {
+    color: #2d3748; /* gray-800 */
+    font-weight: 600; /* sm:font-semibold */
+}
+
+
+/* Print Specific Styles */
+@media print {
+    body {
+        background-color: #fff;
+        margin: 0;
+        padding: 0;
+        display: block; /* Override flex for printing */
+    }
+
+    .app-container {
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+        width: auto;
+    }
+
+    button, input, #search-results-container, #loading-indicator, #error-message, #ai-loading-indicator {
+        display: none !important; /* Hide UI elements for printing */
+    }
+
+    h1, .report-header-title {
+        color: #000 !important; /* Ensure black text for printing */
+        -webkit-print-color-adjust: exact; /* Forcing color print */
+        color-adjust: exact;
+    }
+
+    .report-section {
+        border: 1px solid #ccc;
+        box-shadow: none;
+        page-break-inside: avoid; /* Avoid breaking sections across pages if possible */
+        margin-bottom: 1rem;
+    }
+
+    .generated-text-block {
+        background-color: #fff;
+        border-left: 2px solid #6366f1;
+        box-shadow: none;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+}

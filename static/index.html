@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Report Generator</title>
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Link to external stylesheet - UPDATED FOR FLASK STATIC FILES -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <div class="app-container">
+        <div>
+            <h1 class="text-4xl font-extrabold text-center text-indigo-800 mb-8 leading-tight">
+                <span class="block bg-gradient-to-r from-indigo-600 to-purple-700 text-transparent bg-clip-text flex items-center justify-center">
+                    <svg class="h-10 w-10 mr-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 18l6-6 4 4 8-8" />
+                        <path d="M18 7h3v3" />
+                    </svg>
+                    Stock Report Generator
+                </span>
+            </h1>
+
+            <!-- Input and Search button -->
+            <div class="flex flex-col sm:flex-row items-center justify-center space-y-5 sm:space-y-0 sm:space-x-5 mb-8">
+                <input
+                    id="ticker-input"
+                    type="text"
+                    placeholder="Enter stock ticker (e.g., AAPL, IBM)"
+                    class="flex-grow w-full sm:w-3/4 md:w-1/2 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-300 transition duration-300 ease-in-out shadow-sm text-lg"
+                />
+                <button
+                    id="search-button"
+                    class="w-full sm:w-1/4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+                >
+                    Generate Report
+                </button>
+            </div>
+
+            <!-- Search Results Display -->
+            <div id="search-results-container" class="hidden bg-gray-50 border border-gray-200 rounded-xl p-4 mb-8 max-h-60 overflow-y-auto shadow-inner">
+                <p class="text-gray-700 font-semibold mb-3">Multiple matches found. Please select one:</p>
+                <div id="search-results-list" class="space-y-2">
+                    <!-- Search results will be injected here -->
+                </div>
+            </div>
+
+            <!-- Loading spinner and error message -->
+            <div id="loading-indicator" class="flex justify-center my-6 hidden">
+                <div class="loading-spinner"></div>
+            </div>
+            <div id="error-message" class="text-center text-red-600 font-medium text-lg mt-5 hidden"></div>
+             <div id="ai-loading-indicator" class="flex justify-center my-6 hidden flex-col items-center">
+                <div class="loading-spinner mb-3"></div>
+                <p class="text-indigo-600 font-medium">Generating AI-powered insights...</p>
+            </div>
+        </div>
+
+        <!-- Report content -->
+        <div id="report-content" class="hidden">
+            <div class="print-only mb-6 text-center">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Stock Analysis Report</h1>
+                <p class="text-gray-700 text-base">Generated on <span id="report-date" class="font-medium"></span></p>
+            </div>
+            <!-- Added report-symbol-header here for prominent display of the ticker -->
+            <h2 class="text-3xl font-bold text-center text-indigo-700 mb-6" id="report-symbol-header"></h2>
+
+            <!-- Section: Report Summary -->
+            <div class="report-section">
+                <h2 class="report-header-title">Report Summary</h2>
+                <ul class="list-disc list-inside space-y-2 text-gray-700 mb-4">
+                    <li><span class="font-semibold">Company Name:</span> <span id="summary-company-name"></span></li>
+                    <li><span class="font-semibold">Corporate Address:</span> <span id="summary-address"></span></li>
+                    <li><span class="font-semibold">Stock Ticker:</span> <span id="summary-ticker"></span></li>
+                    <li><span class="font-semibold">Exchange:</span> <span id="summary-exchange"></span></li>
+                    <li><span class="font-semibold">Currency:</span> <span id="summary-currency"></span></li>
+                    <li><span class="font-semibold">Current Stock Price:</span> <span id="summary-current-price"></span></li>
+                    <li><span class="font-semibold">Target Price:</span> <span id="summary-target-price"></span></li>
+                    <li><span class="font-semibold">Recommendation:</span> <span id="summary-recommendation"></span></li> <!-- Added font-semibold back to label -->
+                </ul>
+                <h4 class="text-xl font-semibold text-gray-700 mt-5 mb-3">Company Description</h4>
+                <p class="text-gray-700" id="summary-description"></p>
+            </div>
+
+            <!-- Section: Market Data -->
+            <div class="report-section">
+                <h2 class="report-header-title">Market Data</h2>
+
+                <!-- NEW: Real-time Metrics subsection -->
+                <h4 class="text-xl font-semibold text-gray-700 mt-5 mb-3">Real-time Metrics</h4>
+                <div class="grid grid-cols-1 gap-y-4 text-gray-700">
+                    <div class="data-point"><span class="data-label">Current Price:</span> <span class="data-value" id="current-price">N/A</span></div>
+                    <div class="data-point"><span class="data-label">Today's Open:</span> <span class="data-value" id="open-price">N/A</span></div>
+                    <div class="data-point"><span class="data-label">Day High:</span> <span class="data-value" id="day-high">N/A</span></div>
+                    <div class="data-point"><span class="data-label">Day Low:</span> <span class="data-value" id="day-low">N/A</span></div>
+                    <div class="data-point"><span class="data-label">Daily Volume:</span> <span class="data-value" id="volume">N/A</span></div>
+                </div>
+
+                <!-- NEW: Valuation Metrics subsection -->
+                <h4 class="text-xl font-semibold text-gray-700 mt-5 mb-3">Valuation Metrics</h4>
+                <div class="grid grid-cols-1 gap-y-4 text-gray-700">
+                    <div class="data-point"><span class="data-label">Market Cap:</span> <span class="data-value" id="market-cap">N/A</span></div>
+                    <div class="data-point"><span class="data-label">Shares Outstanding:</span> <span class="data-value" id="shares-outstanding">N/A</span></div>
+                    <div class="data-point"><span class="data-label">P/E Ratio:</span> <span class="data-value" id="pe-ratio">N/A</span></div>
+                    <div class="data-point"><span class="data-label">Beta:</span> <span class="data-value" id="beta">N/A</span></div>
+                    <div class="data-point"><span class="data-label">Dividend Yield:</span> <span class="data-value" id="dividend-yield">N/A</span></div>
+                </div>
+            </div>
+
+            <!-- Section: Fundamentals -->
+            <div class="report-section">
+                <h3 class="report-header-title">Fundamentals & Drivers</h3>
+                <div id="fundamentals-input" class="generated-text-block"></div>
+            </div>
+
+            <!-- Section: Management -->
+            <div class="report-section">
+                <h3 class="report-header-title">Management</h3>
+                <div id="management-input" class="generated-text-block"></div>
+            </div>
+
+            <!-- Section: Financials -->
+            <div class="report-section">
+                <h3 class="report-header-title">Financials</h3>
+
+                <h4 class="text-xl font-semibold text-gray-700 mt-5 mb-3">Annual Revenue</h4>
+                <div id="annual-revenue-data" class="grid grid-cols-1 gap-y-2 text-gray-700">
+                    <p class="col-span-2 text-gray-500" id="no-revenue-data">No annual revenue data available.</p>
+                </div>
+
+                <h4 class="text-xl font-semibold text-gray-700 mt-5 mb-3">Annual EPS</h4>
+                <div id="annual-eps-data" class="grid grid-cols-1 gap-y-2 text-gray-700">
+                    <p class="col-span-2 text-gray-500" id="no-eps-data">No annual EPS data available.</p>
+                </div>
+
+                <h4 class="text-xl font-semibold text-gray-700 mt-5 mb-3">Quarterly Recap & Guidance</h4>
+                <div id="guidance-input" class="generated-text-block"></div>
+            </div>
+
+            <!-- Section: Competition / Production -->
+            <div class="report-section">
+                <h3 class="report-header-title">Competition & Production</h3>
+                <div id="competition-input" class="generated-text-block"></div>
+            </div>
+
+            <!-- Section: Risks -->
+            <div class="report-section">
+                <h3 class="report-header-title">Risks</h3>
+                <div id="risks-input" class="generated-text-block"></div>
+            </div>
+
+            <!-- Section: Valuation -->
+            <div class="report-section">
+                <h3 class="report-header-title">Valuation</h3>
+
+                <div class="grid grid-cols-1 gap-y-4 text-gray-700 mt-4 mb-6"> <!-- This grid remains 1-column -->
+                    <div class="data-point"><span class="data-label">Current P/E:</span> <span class="data-value" id="current-pe">N/A</span></div>
+                    <div class="data-point"><span class="data-label">Trailing 12-Month EPS Growth:</span> <span class="data-value" id="ttm-eps-growth">N/A</span></div>
+                </div>
+
+                <!-- NEW STRUCTURE for Revenue Forecast -->
+                <h4 class="text-xl font-semibold text-gray-700 mt-5 mb-3">Revenue Forecast</h4>
+                <div id="revenue-forecast-input" class="generated-text-block"></div>
+
+                <!-- NEW STRUCTURE for Target Price -->
+                <h4 class="text-xl font-semibold text-gray-700 mt-5 mb-3">Target Price</h4>
+                <div id="target-price-input" class="generated-text-block"></div>
+
+            </div>
+
+            <!-- Section: Bottom Line -->
+            <div class="report-section">
+                <h3 class="report-header-title">Bottom Line</h3>
+                <div id="bottom-line-input" class="generated-text-block"></div>
+            </div>
+
+            <div class="flex justify-center mt-8 space-x-4"> <!-- Added space-x-4 for spacing between buttons -->
+                <button
+                    id="download-pdf-button"
+                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+                >
+                    Download as PDF
+                </button>
+                <button
+                    id="download-word-button"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+                >
+                    Download as Word
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- jsPDF library for programmatic PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- docx library for programmatic Word document generation -->
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+
+
+    <script>
+        // Log to confirm script execution. This should be the very first thing you see.
+        console.log("Main application script loaded.");
+
+        // Using DOMContentLoaded for robust DOM readiness, then apply main function
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOMContentLoaded fired. Initializing main script functionality.");
+
+            // Set up constants for DOM elements
+            const tickerInput = document.getElementById('ticker-input');
+            const searchButton = document.getElementById('search-button');
+            const reportContent = document.getElementById('report-content');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const errorMessage = document.getElementById('error-message');
+            const downloadPdfButton = document.getElementById('download-pdf-button');
+            const downloadWordButton = document.getElementById('download-word-button'); // New Word button
+            const aiLoadingIndicator = document.getElementById('ai-loading-indicator');
+            const searchResultsContainer = document.getElementById('search-results-container');
+            const searchResultsList = document.getElementById('search-results-list');
+
+            // Report display elements
+            const reportSymbolHeader = document.getElementById('report-symbol-header');
+            const summaryDescription = document.getElementById('summary-description');
+            const currentPrice = document.getElementById('current-price');
+            const openPrice = document.getElementById('open-price');
+            const dayHigh = document.getElementById('day-high');
+            const dayLow = document.getElementById('day-low');
+            const volume = document.getElementById('volume');
+            const marketCap = document.getElementById('market-cap');
+            const peRatio = document.getElementById('pe-ratio');
+            const beta = document.getElementById('beta');
+            const dividendYield = document.getElementById('dividend-yield');
+            const sharesOutstanding = document.getElementById('shares-outstanding');
+
+            const annualRevenueData = document.getElementById('annual-revenue-data');
+            const noRevenueData = document.getElementById('no-revenue-data');
+            const annualEpsData = document.getElementById('annual-eps-data');
+            const noEpsData = document.getElementById('no-eps-data');
+
+            const currentPe = document.getElementById('current-pe');
+            const ttmEpsGrowth = document.getElementById('ttm-eps-growth');
+
+            const reportDate = document.getElementById('report-date');
+
+            // AI Generated Text Blocks (now divs, not textareas)
+            const fundamentalsInput = document.getElementById('fundamentals-input');
+            const managementInput = document.getElementById('management-input');
+            const guidanceInput = document.getElementById('guidance-input');
+            const competitionInput = document.getElementById('competition-input');
+            const risksInput = document.getElementById('risks-input');
+            const targetPriceInput = document.getElementById('target-price-input');
+            const revenueForecastInput = document.getElementById('revenue-forecast-input');
+            const bottomLineInput = document.getElementById('bottom-line-input');
+
+            // Report Summary elements
+            const summaryTicker = document.getElementById('summary-ticker');
+            const summaryCompanyName = document.getElementById('summary-company-name');
+            const summaryExchange = document.getElementById('summary-exchange');
+            const summaryCurrency = document.getElementById('summary-currency'); // CORRECTED THIS LINE
+            const summaryCurrentPrice = document.getElementById('summary-current-price');
+            const summaryTargetPrice = document.getElementById('summary-target-price');
+            const summaryAddress = document.getElementById('summary-address'); // Corporate Address element
+            const summaryRecommendation = document.getElementById('summary-recommendation'); // NEW: Recommendation element
+
+            // --- DUMMY DATA FOR OFFLINE DEVELOPMENT ---
+            const dummyStockData = {
+                symbol: "DUMMY",
+                overview: {
+                    Name: "Dummy Corp Inc.",
+                    Description: "This is a placeholder description for Dummy Corporation, designed to facilitate frontend development and styling without requiring live API calls. Dummy Corp specializes in innovative placeholder solutions across various sectors.",
+                    Exchange: "DUMMYEX",
+                    Currency: "USD",
+                    PERatio: "25.00",
+                    MarketCapitalization: "123456789000",
+                    Beta: "1.25",
+                    DividendYield: "0.025",
+                    SharesOutstanding: "820000000",
+                    Address: "123 Main Street, Anytown, CA 90210, USA" // Dummy Address
+                },
+                global_quote: {
+                    "05. price": "150.75",
+                    "02. open": "149.00",
+                    "03. high": "152.00",
+                    "04. low": "148.50",
+                    "06. volume": "15000000",
+                },
+                income_statement: [
+                    { fiscalDateEnding: "2023-12-31", totalRevenue: "5000000000" },
+                    { fiscalDateEnding: "2022-12-31", totalRevenue: "4800000000" },
+                    { fiscalDateEnding: "2021-12-31", totalRevenue: "4500000000" }
+                ],
+                earnings: {
+                    annualReports: [
+                        { fiscalDateEnding: "2023-12-31", reportedEPS: "5.25" },
+                        { fiscalDateEnding: "2022-12-31", reportedEPS: "4.90" },
+                        { fiscalDateEnding: "2021-12-31", reportedEPS: "4.50" }
+                    ]
+                },
+                // Added dummy data for Balance Sheet and Cash Flow
+                balance_sheet: [
+                    { fiscalDateEnding: "2023-12-31", totalAssets: "10000000000", longTermDebt: "1500000000", commonStock: "500000000", totalLiabilities: "3000000000", totalShareholderEquity: "7000000000" },
+                    { fiscalDateEnding: "2022-12-31", totalAssets: "9500000000", longTermDebt: "1200000000", commonStock: "480000000", totalLiabilities: "2800000000", totalShareholderEquity: "6700000000" }
+                ],
+                cash_flow: [
+                    { fiscalDateEnding: "2023-12-31", capitalExpenditures: "-80000000", issuanceOfCommonStock: "20000000", issuanceOfDebt: "300000000", repaymentOfDebt: "-50000000", netIncome: "1000000000" },
+                    { fiscalDateEnding: "2022-12-31", capitalExpenditures: "-60000000", issuanceOfCommonStock: "10000000", issuanceOfDebt: "100000000", repaymentOfDebt: "-30000000", netIncome: "950000000" }
+                ]
+            };
+
+            const dummyAIContent = {
+                fundamentals: "Dummy Corp's fundamentals show consistent growth, driven by strong market demand and strategic acquisitions. Key drivers include innovation in its core product lines and expansion into emerging markets.",
+                management: "Dummy Corp boasts a seasoned management team with extensive industry experience. Their leadership focuses on sustainable growth, operational efficiency, and technological advancement, fostering a culture of innovation.",
+                guidance: "Dummy Corp's recent quarter demonstrated solid performance, with revenue exceeding expectations. The company provides positive guidance for the upcoming quarters, citing robust pipelines and favorable market conditions.",
+                competition: "The competitive landscape for Dummy Corp is dynamic, with both established players and agile startups. Dummy Corp maintains its competitive edge through continuous R&D and a strong customer loyalty program.",
+                risks: "Potential risks for Dummy Corp include market volatility, intense competition, and regulatory changes. Supply chain disruptions and economic downturns could also impact future performance.",
+                targetPrice: "Analyst consensus suggests a target price for Dummy Corp shares in the range of $175.00 to $185.00. This valuation is primarily derived through a discounted cash flow (DCF) model, considering the company's projected earnings growth and a terminal value based on its long-term sustainable growth rate. Additionally, a comparative analysis using sector-average P/E multiples supports this range, reflecting Dummy Corp's strong market position and future earnings potential relative to peers.",
+                revenueForecast: "Analysts project steady revenue growth for Dummy Corp, driven by increasing market share and successful product launches in key growth areas.",
+                bottomLine: "Dummy Corp presents a compelling investment opportunity due to its solid market position, strong financial health, and clear growth strategy. Investors should consider its long-term potential despite short-term market fluctuations.",
+                recommendation: "BUY" // NEW: Dummy recommendation
+            };
+            // --- END DUMMY DATA ---
+
+
+            // IMPORTANT: These URLs point to your local Python Flask proxy server.
+            const ALPHA_VANTAGE_OVERVIEW_PROXY_URL = 'http://127.0.0.1:5000/api/alpha-vantage/overview/'; // Changed for clarity
+            const ALPHA_VANTAGE_GLOBAL_QUOTE_PROXY_URL = 'http://127.0.0.1:5000/api/alpha-vantage/global-quote/'; // Changed for clarity
+            const ALPHA_VANTAGE_INCOME_STATEMENT_PROXY_URL = 'http://127.0.0.1:5000/api/alpha-vantage/income-statement/'; // Changed for clarity
+            const ALPHA_VANTAGE_EARNINGS_PROXY_URL = 'http://127.0.0.1:5000/api/alpha-vantage/earnings/'; // Changed for clarity
+            const ALPHA_VANTAGE_BALANCE_SHEET_PROXY_URL = 'http://127.0.0.1:5000/api/alpha-vantage/balance-sheet/'; // New Balance Sheet fetch
+            const ALPHA_VANTAGE_CASH_FLOW_PROXY_URL = 'http://127.0.0.1:5000/api/alpha-vantage/cash-flow/'; // New Cash Flow fetch
+
+            const ALPHA_VANTAGE_SEARCH_PROXY_URL = 'http://127.0.0.1:5000/api/alpha-vantage/search/';
+            const GEMINI_PROXY_URL = 'http://127.0.0.1:5000/api/gemini/generate-report-sections';
+
+            // Function to show a custom modal message
+            function showModal(title, message) {
+                const modalOverlay = document.createElement('div');
+                modalOverlay.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50';
+                modalOverlay.innerHTML = `
+                    <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm mx-auto text-center">
+                        <h2 class="text-2xl font-bold text-red-600 mb-4">${title}</h2>
+                        <p class="text-gray-700 mb-6">${message}</p>
+                        <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out">Close</button>
+                    </div>
+                `;
+                document.body.appendChild(modalOverlay);
+
+                modalOverlay.querySelector('button').addEventListener('click', () => {
+                    document.body.removeChild(modalOverlay);
+                });
+            }
+
+            // Helper function for exponential backoff
+            async function fetchWithBackoff(url, options, retries = 5, delay = 1000) {
+                try {
+                    console.log(`[FetchWithBackoff] Attempting fetch to: ${url}`);
+                    const response = await fetch(url, options);
+                    console.log(`[FetchWithBackoff] Response status: ${response.status}`);
+                    if (response.status === 429 && retries > 0) { // Too Many Requests
+                        console.warn(`[FetchWithBackoff] Rate limit hit (429). Retrying in ${delay / 1000}s. Retries left: ${retries}`);
+                        await new Promise(res => setTimeout(res, delay));
+                        return fetchWithBackoff(url, options, retries - 1, delay * 2);
+                    }
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({error: 'Unknown error or non-JSON response'})); // Try to parse, but handle if not JSON
+                        console.error(`[FetchWithBackoff] HTTP error! Status: ${response.status}, Error Data:`, errorData);
+                        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                    }
+                    console.log("[FetchWithBackoff] Fetch successful.");
+                    return response;
+                } catch (error) {
+                    console.error(`[FetchWithBackoff] Error during fetch: ${error.message}`);
+                    if (retries > 0 && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+                        console.warn(`[FetchWithBackoff] Network error. Retrying in ${delay / 1000}s. Retries left: ${retries}`);
+                        await new Promise(res => setTimeout(res, delay));
+                        return fetchWithBackoff(url, options, retries - 1, delay * 2);
+                    }
+                    console.error("[FetchWithBackoff] Max retries or unrecoverable error.", error);
+                    throw error;
+                }
+            }
+
+            // Helper function to format values, handling null/undefined/empty string/N/A
+            const formatValue = (value) => value === null || value === undefined || value === '' || String(value).toLowerCase() === 'none' || String(value).toLowerCase() === 'n/a' ? 'N/A' : value;
+
+            // Helper function to format numbers as currency or decimal
+            const formatNumber = (num, isCurrency = true, precision = 2) => {
+                const val = parseFloat(num);
+                if (isNaN(val) || val === 0) {
+                    return formatValue(num);
+                }
+                if (isCurrency) {
+                    return new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: precision,
+                        maximumFractionDigits: precision
+                    }).format(val);
+                } else {
+                    return new Intl.NumberFormat('en-US', {
+                        minimumFractionDigits: precision,
+                        maximumFractionDigits: precision
+                    }).format(val);
+                }
+            };
+
+            // Helper to format large numbers for Market Cap and Shares Outstanding
+            const formatLargeNumber = (numStr, isShares = false) => {
+                const num = parseFloat(numStr);
+                if (isNaN(num)) return formatValue(numStr);
+
+                if (isShares) {
+                    // For shares, no currency symbol, just format with M/B if large
+                    const precision = 0; // shares generally don't have decimals with M/B
+                    if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(precision) + 'B';
+                    if (num >= 1_000_000) return (num / 1_000_000).toFixed(precision) + 'M';
+                    return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: precision });
+                } else {
+                    // For currency (like Market Cap), add '$' and format with M/B if large
+                    const precision = 2;
+                    if (num >= 1_000_000_000) return '$' + (num / 1_000_000_000).toFixed(precision) + 'B';
+                    if (num >= 1_000_000) return '$' + (num / 1_000_000).toFixed(precision) + 'M';
+                    // For numbers less than 1 million, format as currency
+                    return new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: precision,
+                        maximumFractionDigits: precision
+                    }).format(num);
+                }
+            };
+
+
+            // Function to calculate and display TTM EPS Growth
+            function calculateAndDisplayEpsGrowth(annualEarnings) {
+                annualEarnings.sort((a, b) => new Date(b.fiscalDateEnding) - new Date(a.fiscalDateEnding));
+
+                if (annualEarnings.length >= 2) {
+                    const latestEPS = parseFloat(annualEarnings[0].reportedEPS);
+                    const previousEPS = parseFloat(annualEarnings[1].reportedEPS);
+
+                    if (!isNaN(latestEPS) && !isNaN(previousEPS) && previousEPS !== 0) {
+                        const growth = ((latestEPS - previousEPS) / previousEPS) * 100;
+                        ttmEpsGrowth.textContent = `${formatNumber(growth, false, 2)}%`;
+                    } else {
+                        ttmEpsGrowth.textContent = 'N/A (Insufficient data)';
+                    }
+                } else {
+                    ttmEpsGrowth.textContent = 'N/A (Need at least 2 annual EPS reports)';
+                }
+            }
+
+            // Function to make a fetch call to the backend proxy
+            async function fetchFullReportData(ticker, selectedMatch = {}) { // Pass selectedMatch
+                console.log(`[fetchFullReportData] Fetching full report for: ${ticker}`);
+                try {
+                    // Fetch all required Alpha Vantage data concurrently
+                    const [overviewResponse, globalQuoteResponse, incomeStatementResponse, earningsResponse, balanceSheetResponse, cashFlowResponse] = await Promise.all([
+                        fetchWithBackoff(`${ALPHA_VANTAGE_OVERVIEW_PROXY_URL}${ticker}`), // Changed URL
+                        fetchWithBackoff(`${ALPHA_VANTAGE_GLOBAL_QUOTE_PROXY_URL}${ticker}`), // Changed URL
+                        fetchWithBackoff(`${ALPHA_VANTAGE_INCOME_STATEMENT_PROXY_URL}${ticker}`), // Changed URL
+                        fetchWithBackoff(`${ALPHA_VANTAGE_EARNINGS_PROXY_URL}${ticker}`), // Changed URL
+                        fetchWithBackoff(`${ALPHA_VANTAGE_BALANCE_SHEET_PROXY_URL}${ticker}`), // New Balance Sheet fetch
+                        fetchWithBackoff(`${ALPHA_VANTAGE_CASH_FLOW_PROXY_URL}${ticker}`)     // New Cash Flow fetch
+                    ]);
+
+                    const overviewData = await overviewResponse.json();
+                    const globalQuoteData = await globalQuoteResponse.json();
+                    const incomeStatementData = await incomeStatementResponse.json();
+                    const earningsData = await earningsResponse.json(); // FIXED: Changed from earningsStatementResponse to earningsResponse
+                    const balanceSheetData = await balanceSheetResponse.json(); // New Balance Sheet data
+                    const cashFlowData = await cashFlowResponse.json();       // New Cash Flow data
+
+                    console.log("[fetchFullReportData] Received Alpha Vantage Data:", { overviewData, globalQuoteData, incomeStatementData, earningsData, balanceSheetData, cashFlowData });
+
+                    // Check for API rate limit messages in any of the responses
+                    if (overviewData.Information || globalQuoteData.Information || incomeStatementData.Information || earningsData.Information || balanceSheetData.Information || cashFlowData.Information) {
+                        const infoMessage = overviewData.Information || globalQuoteData.Information || incomeStatementData.Information || earningsData.Information || balanceSheetData.Information || cashFlowData.Information;
+                        showModal('API Rate Limit Exceeded', infoMessage);
+                        reportContent.classList.add('hidden');
+                        console.warn("[displayReport] Alpha Vantage Information message detected, hiding report.");
+                        return; // Exit if rate limit hit
+                    }
+
+
+                    const fullStockData = {
+                        symbol: ticker, // Use the input ticker as the symbol
+                        overview: overviewData,
+                        global_quote: globalQuoteData['Global Quote'] || {}, // Ensure global_quote is nested as expected
+                        income_statement: incomeStatementData.annualReports || [],
+                        earnings: earningsData,
+                        balance_sheet: balanceSheetData.annualReports || [], // Add Balance Sheet to stockData
+                        cash_flow: cashFlowData.annualReports || []         // Add Cash Flow to stockData
+                    };
+
+                    // Basic error checking
+                    if (Object.keys(fullStockData.overview).length === 0 || Object.keys(fullStockData.global_quote).length === 0) {
+                        throw new Error("Could not retrieve essential stock data. The ticker might be invalid or data is unavailable.");
+                    }
+
+                    displayReport(fullStockData, selectedMatch); // Pass all combined data
+                } catch (error) {
+                    console.error("[fetchFullReportData] Error fetching full report data:", error);
+                    errorMessage.textContent = `Failed to load report: ${error.message}`;
+                    errorMessage.classList.remove('hidden'); // Ensure this is visible if there's an error
+                    reportContent.classList.add('hidden');
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+
+            // Function to generate content for manual sections using LLM
+            async function generateAIContent(stockData) {
+                aiLoadingIndicator.classList.remove('hidden');
+                console.log("[generateAIContent] Starting AI content generation.");
+
+                const formattedRevenue = stockData.income_statement ? stockData.income_statement.map(r => `${new Date(r.fiscalDateEnding).getFullYear()}: ${formatLargeNumber(r.totalRevenue)}`).join(', ') : 'N/A';
+                const formattedEPS = stockData.earnings && stockData.earnings.annualReports ? stockData.earnings.annualReports.map(e => `${new Date(e.fiscalDateEnding).getFullYear()}: ${formatNumber(e.reportedEPS)}`).join(', ') : 'N/A';
+
+                // Determine shares outstanding for the prompt: prefer API, then calculate
+                let sharesOutstandingForPrompt = 'N/A';
+                if (stockData.overview.SharesOutstanding && formatValue(stockData.overview.SharesOutstanding) !== 'N/A') {
+                    sharesOutstandingForPrompt = formatLargeNumber(stockData.overview.SharesOutstanding, true);
+                } else if (parseFloat(stockData.overview.MarketCapitalization) && parseFloat(stockData.global_quote['05. price'])) {
+                    const calculatedShares = parseFloat(stockData.overview.MarketCapitalization) / parseFloat(stockData.global_quote['05. price']);
+                    sharesOutstandingForPrompt = formatLargeNumber(calculatedShares, true);
+                }
+
+                // Corporate Address from Alpha Vantage overview
+                const corporateAddress = formatValue(stockData.overview.Address);
+                const currentStockPrice = parseFloat(stockData.global_quote['05. price']);
+                const targetPriceText = summaryTargetPrice.textContent; // Get the target price as displayed
+
+                let targetPriceValue = 'N/A';
+                // Extract numerical value from targetPriceText, handling various formats including "$175.00 to $185.00"
+                const targetPriceMatch = targetPriceText.match(/\$?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
+                if (targetPriceMatch && targetPriceMatch[1]) {
+                    // If a range, take the average or the first number for a simplified comparison.
+                    // For a proper recommendation, you'd likely want a more robust parsing or direct numerical field from Alpha Vantage.
+                    const numbersInTargetPrice = targetPriceText.match(/\d+\.?\d*/g);
+                    if (numbersInTargetPrice && numbersInTargetPrice.length > 0) {
+                        if (numbersInTargetPrice.length > 1) {
+                            targetPriceValue = (parseFloat(numbersInTargetPrice[0]) + parseFloat(numbersInTargetPrice[1])) / 2;
+                        } else {
+                            targetPriceValue = parseFloat(numbersInTargetPrice[0]);
+                        }
+                    }
+                }
+
+                // NEW: Extract recent Balance Sheet data
+                const latestBalanceSheet = stockData.balance_sheet && stockData.balance_sheet.length > 0 ? stockData.balance_sheet[0] : {};
+                const longTermDebt = formatLargeNumber(latestBalanceSheet.longTermDebt);
+                const totalAssets = formatLargeNumber(latestBalanceSheet.totalAssets);
+                const totalLiabilities = formatLargeNumber(latestBalanceSheet.totalLiabilities);
+                const totalShareholderEquity = formatLargeNumber(latestBalanceSheet.totalShareholderEquity);
+                const commonStockEquity = formatLargeNumber(latestBalanceSheet.commonStock);
+
+
+                // NEW: Extract recent Cash Flow data
+                const latestCashFlow = stockData.cash_flow && stockData.cash_flow.length > 0 ? stockData.cash_flow[0] : {};
+                const capitalExpenditures = formatLargeNumber(latestCashFlow.capitalExpenditures, false); // Keep as number, not currency
+                const issuanceOfCommonStock = formatLargeNumber(latestCashFlow.issuanceOfCommonStock);
+                const issuanceOfDebt = formatLargeNumber(latestCashFlow.issuanceOfDebt);
+                const repaymentOfDebt = formatLargeNumber(latestCashFlow.repaymentOfDebt);
+                const netIncomeCF = formatLargeNumber(latestCashFlow.netIncome); // Net Income from Cash Flow
+
+                // UPDATED PROMPT: Requesting more in-depth responses with new financial data
+                const prompt = `Generate detailed and insightful text for a stock analysis report for ${stockData.symbol}. Ensure each section is comprehensive and provides a thorough analysis based on the provided data and common knowledge.
+                Additionally, provide a clear stock recommendation (BUY, HOLD, or SELL) based on the current price relative to the target price, and the overall company outlook.
+
+                Company Description: ${formatValue(stockData.overview.Description)}
+                Current Price: ${formatNumber(currentStockPrice)}
+                Target Price: ${formatNumber(targetPriceValue)}
+                P/E Ratio: ${formatNumber(stockData.overview.PERatio, false)}
+                Market Capitalization: ${formatLargeNumber(stockData.overview.MarketCapitalization)}
+                Beta: ${formatNumber(stockData.overview.Beta, false, 2)}
+                Dividend Yield: ${formatNumber(parseFloat(stockData.overview.DividendYield) * 100, false, 2)}%
+                Annual Revenue: ${formattedRevenue}
+                Annual EPS: ${formattedEPS}
+                Trailing 12-Month EPS Growth: ${ttmEpsGrowth.textContent} (from current display)
+                Shares Outstanding: ${sharesOutstandingForPrompt}
+                Corporate Address: ${corporateAddress}
+
+                --- Recent Financial Activities (from Balance Sheet & Cash Flow) ---
+                Latest Fiscal Year: ${latestBalanceSheet.fiscalDateEnding || 'N/A'}
+                Total Assets: ${totalAssets}
+                Total Liabilities: ${totalLiabilities}
+                Total Shareholder Equity: ${totalShareholderEquity}
+                Long-Term Debt: ${longTermDebt}
+                Common Stock (Balance Sheet Equity): ${commonStockEquity}
+                Capital Expenditures (Cash Flow): ${capitalExpenditures}
+                Issuance of Common Stock (Cash Flow): ${issuanceOfCommonStock}
+                Issuance of Debt (Cash Flow): ${issuanceOfDebt}
+                Repayment of Debt (Cash Flow): ${repaymentOfDebt}
+                Net Income (Cash Flow): ${netIncomeCF}
+
+                Provide the output as a JSON object with the following keys. Each value should be a string containing the generated text for that section. The "recommendation" field should ONLY contain "BUY", "HOLD", or "SELL". If information is genuinely unavailable or not applicable, provide a concise general statement. Make each section's content substantial and well-explained, incorporating insights from the financial activities provided. Specifically, for risks and fundamentals, discuss implications of capital expenditures, debt levels, and changes in stock/debt issuance/repayment.
+
+                {
+                  "fundamentals": "Provide a comprehensive analysis of the company's key fundamentals, including its business model, competitive advantages, and primary growth drivers. Discuss how these elements contribute to its financial health and market position, explicitly mentioning insights from its capital allocation (e.g., significant capital expenditures for growth) and equity structure.",
+                  "management": "Offer a detailed overview of the company's management team, including key executives, their experience, and their strategic vision. Discuss the impact of their leadership on the company's operations, innovation, and long-term trajectory, particularly how their financing decisions (e.g., debt issuance, stock buybacks/issuances) reflect their strategy.",
+                  "guidance": "Give an in-depth summary of the company's most recent quarterly performance, highlighting key financial results, and management's outlook and guidance for future quarters. Include commentary on revenue projections, profitability, and any significant operational milestones, linking them to recent capital investments or financing activities if applicable.",
+                  "competition": "Analyze the competitive landscape in which the company operates. Identify its main competitors, discuss its market share, and explain its competitive strategies and differentiation. Include insights into industry trends and how they affect the company's competitive standing, considering how major investments (capital expenditures) might strengthen or weaken its position.",
+                  "risks": "Elaborate on the various risks and challenges that could impact the company's performance. This should cover financial risks (e.g., impact of current debt levels and recent debt issuances/repayments, interest rate sensitivity, capital structure), operational risks (e.g., supply chain disruptions, efficiency of capital expenditures), industry-specific challenges, market risks, and broader macroeconomic or geopolitical factors that could affect its business. Discuss the implications of any significant stock issuances or repurchases.",
+                  "targetPrice": "Provide a detailed explanation of the suggested target price or valuation commentary. Discuss the methodologies used (e.g., DCF, comparative analysis), and the key assumptions that underpin this valuation. Explain how the target price relates to the company's intrinsic value and market potential, considering its financial structure and recent investments.",
+                  "revenueForecast": "Offer a thorough commentary on the company's future revenue growth prospects. Discuss factors driving this growth, such as new product lines, market expansion, or technological advancements, and how recent capital expenditures support these forecasts. Include any relevant analyst consensus or internal projections.",
+                  "bottomLine": "Present a comprehensive overall summary and investment thesis. Clearly articulate why this company presents a compelling investment opportunity (or not). Reiterate key strengths, address major concerns (including those related to financial activities), and provide a holistic conclusion on its investment appeal.",
+                  "recommendation": "BUY" // Or "HOLD" or "SELL" based on in-depth analysis.
+                }`;
+
+                const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+                const apiUrl = `${GEMINI_PROXY_URL}`;
+
+                try {
+                    const response = await fetchWithBackoff(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    console.log("[generateAIContent] Raw AI response:", result);
+
+                    if (result.generated_content) {
+                        try {
+                            const parsedJson = JSON.parse(result.generated_content);
+                            console.log("[generateAIContent] Parsed AI JSON:", parsedJson);
+                            // Ensure the recommendation is one of the allowed values
+                            const validRecommendations = ["BUY", "HOLD", "SELL"];
+                            if (parsedJson.recommendation && !validRecommendations.includes(parsedJson.recommendation.toUpperCase())) {
+                                console.warn(`[generateAIContent] Invalid recommendation received: ${parsedJson.recommendation}. Defaulting to 'HOLD'.`);
+                                parsedJson.recommendation = "HOLD"; // Default to HOLD if invalid
+                            }
+                            return parsedJson;
+                        } catch (parseError) {
+                            console.error("[generateAIContent] Failed to parse LLM response JSON:", parseError);
+                            return {
+                                fundamentals: "AI generation failed: Invalid JSON response.",
+                                management: "AI generation failed: Invalid JSON response.",
+                                guidance: "AI generation failed: Invalid JSON response.",
+                                competition: "AI generation failed: Invalid JSON response.",
+                                risks: "AI generation failed: Invalid JSON response.",
+                                targetPrice: "Error: Could not generate.",
+                                revenueForecast: "AI generation failed: Invalid JSON response.",
+                                bottomLine: "AI generation failed: Invalid JSON response.",
+                                recommendation: "N/A" // Fallback recommendation
+                            };
+                        }
+                    } else {
+                        throw new Error(result.error || "Invalid LLM response structure (no generated_content).");
+                    }
+                } catch (error) {
+                    console.error("[generateAIContent] Error generating AI content:", error);
+                    throw new Error(`AI generation failed: ${error.message}`);
+                } finally {
+                    aiLoadingIndicator.classList.add('hidden');
+                }
+            }
+
+            // Function to clear all report content
+            function clearReportContent() {
+                console.log("[clearReportContent] Clearing previous report content.");
+                // Hide report sections
+                reportContent.classList.add('hidden');
+                errorMessage.classList.add('hidden');
+                searchResultsContainer.classList.add('hidden');
+
+                // Clear summary fields
+                summaryTicker.textContent = '';
+                summaryCompanyName.textContent = '';
+                summaryExchange.textContent = '';
+                summaryCurrency.textContent = '';
+                summaryCurrentPrice.textContent = '';
+                summaryTargetPrice.textContent = '';
+                summaryAddress.textContent = ''; // Clear address field
+                summaryDescription.textContent = '';
+                summaryRecommendation.textContent = ''; // NEW: Clear recommendation field
+                summaryRecommendation.classList.remove('font-bold', 'text-blue-600', 'text-green-600', 'text-red-600'); // Clear styling
+
+                // Clear market data fields
+                currentPrice.textContent = 'N/A';
+                openPrice.textContent = 'N/A';
+                dayHigh.textContent = 'N/A';
+                dayLow.textContent = 'N/A';
+                volume.textContent = 'N/A';
+                marketCap.textContent = 'N/A';
+                peRatio.textContent = 'N/A';
+                beta.textContent = 'N/A';
+                dividendYield.textContent = 'N/A';
+                sharesOutstanding.textContent = 'N/A';
+
+
+                // Clear financial data
+                annualRevenueData.innerHTML = '';
+                noRevenueData.classList.remove('hidden');
+                annualEpsData.innerHTML = '';
+                noEpsData.classList.remove('hidden');
+
+                currentPe.textContent = 'N/A';
+                ttmEpsGrowth.textContent = 'N/A';
+
+                // Clear AI generated text blocks
+                fundamentalsInput.textContent = '';
+                managementInput.textContent = '';
+                guidanceInput.textContent = '';
+                competitionInput.textContent = '';
+                risksInput.textContent = '';
+                // Target price and revenue forecast are handled by specific element updates, no generic clear
+                bottomLineInput.textContent = '';
+
+                // Clear search results list
+                searchResultsList.innerHTML = '';
+            }
+
+            // Function to display the fetched data on the page
+            async function displayReport(data, selectedMatch = {}, aiContent = null) { // Added aiContent parameter
+                console.log("[displayReport] Displaying report data.");
+                clearReportContent(); // Clear existing content before displaying new
+
+                // Check for Alpha Vantage rate limit message in overview
+                if (data.overview && data.overview.Information) {
+                    showModal('API Rate Limit Exceeded', data.overview.Information);
+                    reportContent.classList.add('hidden');
+                    console.warn("[displayReport] Alpha Vantage Information message detected, hiding report.");
+                    return;
+                }
+
+                // Update report date
+                reportDate.textContent = new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                // Overall Symbol Header
+                if (reportSymbolHeader) {
+                    reportSymbolHeader.textContent = `${formatValue(data.symbol)} - ${formatValue(data.overview.Name)}`;
+                } else {
+                    console.error("Element with ID 'report-symbol-header' not found.");
+                }
+
+                // --- Report Summary Section ---
+                if (summaryCompanyName) summaryCompanyName.textContent = formatValue(data.overview.Name);
+                if (summaryAddress) summaryAddress.textContent = formatValue(data.overview.Address); // Populate address
+                if (summaryTicker) summaryTicker.textContent = formatValue(data.symbol);
+                // Updated: Prioritize data.overview.Exchange, fallback to selectedMatch.region
+                if (summaryExchange) summaryExchange.textContent = formatValue(data.overview.Exchange || selectedMatch.region);
+                if (summaryCurrency) summaryCurrency.textContent = formatValue(selectedMatch.currency || data.overview.Currency);
+                if (summaryCurrentPrice) summaryCurrentPrice.textContent = formatNumber(data.global_quote['05. price']);
+                // summaryTargetPrice should ONLY show the price, extracted from the AI content
+                let summaryTpVal = 'N/A';
+                // Remove hardcoded '$' here, let formatNumber handle it
+                const summaryTpMatch = (aiContent || dummyAIContent).targetPrice.match(/\$?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
+                if (summaryTpMatch && summaryTpMatch[1]) {
+                    summaryTpVal = formatNumber(summaryTpMatch[1], true, 2); // Pass true for isCurrency
+                } else {
+                    summaryTpVal = formatValue((aiContent || dummyAIContent).targetPrice);
+                }
+                if (summaryTargetPrice) summaryTargetPrice.textContent = summaryTpVal;
+
+
+                // --- Market Data ---
+                const globalQuote = data.global_quote;
+                if (currentPrice) currentPrice.textContent = formatNumber(globalQuote['05. price']);
+                if (openPrice) openPrice.textContent = formatNumber(globalQuote['02. open']);
+                if (dayHigh) dayHigh.textContent = formatNumber(globalQuote['03. high']);
+                if (dayLow) dayLow.textContent = formatNumber(globalQuote['04. low']);
+                if (volume) volume.textContent = formatNumber(globalQuote['06. volume'], false, 0); // Volume is not currency
+                if (marketCap) marketCap.textContent = formatLargeNumber(data.overview.MarketCapitalization);
+                if (peRatio) peRatio.textContent = formatNumber(data.overview.PERatio, false);
+                if (beta) beta.textContent = formatNumber(data.overview.Beta, false, 2);
+                if (dividendYield) dividendYield.textContent = formatNumber(parseFloat(data.overview.DividendYield) * 100, false, 2) + '%';
+                // Prioritize data.overview.SharesOutstanding, fallback to calculation
+                if (sharesOutstanding) {
+                    if (data.overview.SharesOutstanding && formatValue(data.overview.SharesOutstanding) !== 'N/A') {
+                        sharesOutstanding.textContent = formatLargeNumber(data.overview.SharesOutstanding, true);
+                    } else {
+                        const mktCap = parseFloat(data.overview.MarketCapitalization);
+                        const price = parseFloat(globalQuote['05. price']);
+                        if (!isNaN(mktCap) && !isNaN(price) && price !== 0) {
+                            const calculatedShares = mktCap / price;
+                            sharesOutstanding.textContent = formatLargeNumber(calculatedShares, true);
+                        } else {
+                            sharesOutstanding.textContent = 'N/A';
+                        }
+                    }
+                }
+
+
+                // --- Financials (Revenue) ---
+                if (annualRevenueData) annualRevenueData.innerHTML = '';
+                if (data.income_statement && data.income_statement.length > 0) {
+                    if (noRevenueData) noRevenueData.classList.add('hidden');
+                    data.income_statement.forEach(report => {
+                        const year = new Date(report.fiscalDateEnding).getFullYear();
+                        // Removed hardcoded '$'
+                        if (annualRevenueData) annualRevenueData.innerHTML += `<div class="data-point"><span class="data-label">Revenue ${year}:</span> <span class="data-value">${formatLargeNumber(report.totalRevenue)}</span></div>`;
+                    });
+                } else {
+                    if (noRevenueData) noRevenueData.classList.remove('hidden');
+                }
+
+                // --- Financials (EPS) ---
+                if (annualEpsData) annualEpsData.innerHTML = '';
+                if (data.earnings && data.earnings.annualReports && data.earnings.annualReports.length > 0) {
+                    if (noEpsData) noEpsData.classList.add('hidden');
+                    data.earnings.annualReports.forEach(report => {
+                        const year = new Date(report.fiscalDateEnding).getFullYear();
+                        // Removed hardcoded '$'
+                        if (annualEpsData) annualEpsData.innerHTML += `<div class="data-point"><span class="data-label">EPS ${year}:</span> <span class="data-value">${formatNumber(report.reportedEPS)}</span></div>`;
+                    });
+                    calculateAndDisplayEpsGrowth(data.earnings.annualReports);
+                } else {
+                    if (noEpsData) noEpsData.classList.remove('hidden');
+                }
+
+                if (currentPe) currentPe.textContent = formatNumber(data.overview.PERatio, false);
+
+                // Make report content visible BEFORE AI generation starts to show initial data
+                if (reportContent) reportContent.classList.remove('hidden');
+
+                // --- AI Generated Content ---
+                let finalAiContent;
+                if (aiContent) { // If dummy AI content is passed directly
+                    finalAiContent = aiContent;
+                    console.log("[displayReport] Using pre-provided AI content.");
+                } else { // Otherwise, generate AI content via API
+                    try {
+                        console.log("[displayReport] Calling generateAIContent...");
+                        finalAiContent = await generateAIContent(data);
+                        console.log("[displayReport] Received AI content, updating UI.");
+                    } catch (error) {
+                        console.error("[displayReport] AI Generation Error during display:", error);
+                        showModal('AI Generation Error', `Could not generate AI content: ${error.message}. Please try again.`);
+                        finalAiContent = { // Fallback error content
+                            fundamentals: 'Error generating content.',
+                            management: 'Error generating content.',
+                            guidance: 'Error generating content.',
+                            competition: 'Error generating content.',
+                            risks: 'Error generating content.',
+                            targetPrice: 'N/A (AI Error)',
+                            revenueForecast: 'N/A (AI Error)', // Changed to N/A for consistency
+                            bottomLine: 'N/A (AI Error)',
+                            recommendation: 'N/A' // Fallback recommendation
+                        };
+                    }
+                }
+
+                if (fundamentalsInput) fundamentalsInput.textContent = finalAiContent.fundamentals;
+                if (managementInput) managementInput.textContent = finalAiContent.management;
+                if (guidanceInput) guidanceInput.textContent = finalAiContent.guidance;
+                if (competitionInput) competitionInput.textContent = finalAiContent.competition;
+                if (risksInput) risksInput.textContent = finalAiContent.risks;
+                if (bottomLineInput) bottomLineInput.textContent = finalAiContent.bottomLine;
+
+                // Detailed Target Price (targetPriceInput) should show the FULL AI content string
+                if (targetPriceInput) targetPriceInput.textContent = formatValue(finalAiContent.targetPrice);
+
+                let revenueForecastValue = 'N/A';
+                revenueForecastValue = formatValue(finalAiContent.revenueForecast);
+                if (revenueForecastInput) revenueForecastInput.textContent = revenueForecastValue;
+
+                if (summaryRecommendation) {
+                    const recommendationText = formatValue(finalAiContent.recommendation).toUpperCase();
+                    summaryRecommendation.textContent = recommendationText;
+
+                    // Remove existing color classes
+                    summaryRecommendation.classList.remove('text-blue-600', 'text-green-600', 'text-red-600');
+                    // Add bold and color based on recommendation
+                    summaryRecommendation.classList.add('font-bold');
+                    if (recommendationText === 'BUY') {
+                        summaryRecommendation.classList.add('text-green-600');
+                    } else if (recommendationText === 'HOLD') {
+                        summaryRecommendation.classList.add('text-blue-600');
+                    } else if (recommendationText === 'SELL') {
+                        summaryRecommendation.classList.add('text-red-600');
+                    }
+                }
+                if (summaryDescription) summaryDescription.textContent = formatValue(data.overview.Description);
+            }
+
+            // Main function to handle the search and report generation flow
+            searchButton.addEventListener('click', async () => {
+                console.log("Search button clicked!"); // Log to confirm button click
+                const ticker = tickerInput.value.trim().toUpperCase();
+                if (!ticker) {
+                    showModal('Validation Error', 'Please enter a stock ticker or keyword.');
+                    console.log("No ticker entered, showing modal.");
+                    return;
+                }
+
+                clearReportContent(); // Clear existing content
+                loadingIndicator.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+                aiLoadingIndicator.classList.add('hidden');
+                searchResultsContainer.classList.add('hidden'); // Ensure hidden at start of new search
+
+                if (ticker === 'DUMMY') {
+                    console.log("DUMMY ticker detected. Displaying mock data.");
+                    loadingIndicator.classList.add('hidden');
+                    aiLoadingIndicator.classList.add('hidden');
+                    // Pass dummy AI content directly to displayReport
+                    displayReport(dummyStockData, { region: "GLOBAL", currency: "USD" }, dummyAIContent);
+                    return; // Exit function early for dummy data
+                }
+
+                try {
+                    console.log(`Attempting to search for ticker: ${ticker}`); // Log search attempt
+                    const response = await fetchWithBackoff(`${ALPHA_VANTAGE_SEARCH_PROXY_URL}${ticker}`);
+                    const matches = await response.json();
+                    console.log("Alpha Vantage search response (parsed JSON):", matches); // Log search response
+
+                    if (matches.error) {
+                        throw new Error(matches.error);
+                    }
+
+                    if (matches.length > 1) {
+                        // Display search results for selection
+                        searchResultsList.innerHTML = ''; // Clear previous results
+                        matches.forEach(match => {
+                            const resultDiv = document.createElement('div');
+                            resultDiv.className = 'p-3 bg-white rounded-lg shadow-sm hover:bg-indigo-50 cursor-pointer transition duration-200 ease-in-out flex justify-between items-center';
+                            resultDiv.innerHTML = `
+                                <div>
+                                    <span class="font-semibold text-indigo-700">${match.symbol}</span>
+                                    <span class="text-gray-600 ml-2">(${match.name})</span>
+                                </div>
+                                <span class="text-sm text-gray-500">${match.region} / ${match.currency}</span>
+                            `;
+                            resultDiv.addEventListener('click', () => {
+                                tickerInput.value = match.symbol; // Set the selected symbol in the input
+                                searchResultsContainer.classList.add('hidden'); // Hide search results
+                                loadingIndicator.classList.remove('hidden'); // Show loading for full report
+                                fetchFullReportData(match.symbol, match); // Fetch full report for selected symbol
+                            });
+                            searchResultsList.appendChild(resultDiv);
+                        });
+                        searchResultsContainer.classList.remove('hidden');
+                        loadingIndicator.classList.add('hidden'); // Hide general loading if search results are shown
+                        console.log("Multiple matches found, displaying search results.");
+                    } else if (matches.length === 1) {
+                        // Directly fetch full report if only one match
+                        tickerInput.value = matches[0].symbol; // Set the selected symbol in the input
+                        console.log(`One match found, fetching full report for: ${matches[0].symbol}`);
+                        await fetchFullReportData(matches[0].symbol, matches[0]);
+                    } else {
+                        errorMessage.textContent = 'No matching stock symbols found. Please try a different keyword.';
+                        errorMessage.classList.remove('hidden');
+                        console.log("No matching symbols found for the search keyword.");
+                    }
+                } catch (error) {
+                    console.error("Error during symbol search (outer catch):", error);
+                    errorMessage.textContent = `Search failed: ${error.message}. Please try again.`;
+                    errorMessage.classList.remove('hidden');
+                } finally {
+                    loadingIndicator.classList.add('hidden'); // Always hide loading regardless of outcome
+                    console.log("Search button click handler finished.");
+                }
+            });
+
+            // Event listener for Download PDF button - NOW PROGRAMMATIC PDF GENERATION
+            downloadPdfButton.addEventListener('click', async () => {
+                console.log("Download PDF button clicked. Initiating programmatic PDF generation.");
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'pt', // Using points for unit for finer control
+                    format: 'letter' // Letter size (8.5 x 11 inches)
+                });
+
+                const margin = 50; // Points (approx 0.7 inch)
+                let y = margin; // Starting Y position
+                const pageHeight = doc.internal.pageSize.height;
+                const pageWidth = doc.internal.pageSize.width;
+                const contentWidth = pageWidth - 2 * margin;
+
+                // Function to add a new page if content exceeds current page
+                const addNewPage = () => {
+                    doc.addPage();
+                    y = margin;
+                };
+
+                // Function to add text and update y position
+                const addText = (text, x, fontSize, fontStyle = 'normal', color = '#333333', maxWidth = contentWidth, align = 'left') => {
+                    doc.setFont('helvetica', fontStyle); // jsPDF only supports a few standard fonts unless you embed them
+                    doc.setFontSize(fontSize);
+                    doc.setTextColor(color);
+
+                    const lines = doc.splitTextToSize(text, maxWidth);
+                    let currentX = x;
+
+                    if (align === 'center') {
+                        currentX = pageWidth / 2;
+                    } else if (align === 'right') {
+                        currentX = pageWidth - margin;
+                    }
+
+                    for (const line of lines) {
+                        if (y + fontSize * 1.15 > pageHeight - margin) { // Check if line will fit on current page with new line height
+                            addNewPage();
+                        }
+                        doc.text(line, currentX, y, { align: align });
+                        y += fontSize * 1.15; // Adjusted line height for better spacing
+                    }
+                };
+
+                // Retrieve current report data from DOM (assuming it's already displayed)
+                const currentStockSymbol = summaryTicker.textContent;
+                const currentCompanyName = summaryCompanyName.textContent;
+                const currentReportDate = reportDate.textContent;
+                const currentDescription = summaryDescription.textContent;
+                const currentAddress = summaryAddress.textContent; // Get address for PDF
+                const currentRecommendation = summaryRecommendation.textContent; // NEW: Get recommendation for PDF
+
+
+                const currentRealtimeMetrics = {
+                    'Current Price': currentPrice.textContent,
+                    'Today's Open': openPrice.textContent,
+                    'Day High': dayHigh.textContent,
+                    'Day Low': dayLow.textContent,
+                    'Daily Volume': volume.textContent
+                };
+
+                const currentValuationMetrics = {
+                    'Market Cap': marketCap.textContent,
+                    'Shares Outstanding': sharesOutstanding.textContent,
+                    'P/E Ratio': peRatio.textContent,
+                    'Beta': beta.textContent,
+                    'Dividend Yield': dividendYield.textContent
+                };
+
+                const currentAnnualRevenueData = [];
+                annualRevenueData.querySelectorAll('.data-point').forEach(dp => {
+                    const label = dp.querySelector('.data-label').textContent.replace(':', '');
+                    const value = dp.querySelector('.data-value').textContent;
+                    currentAnnualRevenueData.push(`${label}: ${value}`);
+                });
+
+                const currentAnnualEpsData = [];
+                annualEpsData.querySelectorAll('.data-point').forEach(dp => {
+                    const label = dp.querySelector('.data-label').textContent.replace(':', '');
+                    const value = dp.querySelector('.data-value').textContent;
+                    currentAnnualEpsData.push(`${label}: ${value}`);
+                });
+
+                const currentValuationSummary = {
+                    'Current P/E': currentPe.textContent,
+                    'Trailing 12-Month EPS Growth': ttmEpsGrowth.textContent
+                };
+
+                // AI-generated content (make sure these inputs are populated from the live data)
+                const aiContent = {
+                    fundamentals: fundamentalsInput.textContent,
+                    management: managementInput.textContent,
+                    guidance: guidanceInput.textContent,
+                    competition: competitionInput.textContent,
+                    risks: risksInput.textContent,
+                    targetPrice: targetPriceInput.textContent,
+                    revenueForecast: revenueForecastInput.textContent,
+                    bottomLine: bottomLineInput.textContent,
+                    recommendation: currentRecommendation // Use the already displayed recommendation
+                };
+
+
+                // Hide the download buttons just before PDF generation
+                downloadPdfButton.style.display = 'none';
+                downloadWordButton.style.display = 'none';
+                loadingIndicator.classList.remove('hidden'); // Show generic loading for PDF generation
+
+                // --- Start PDF Content Generation ---
+
+                // Header
+                addText('Stock Analysis Report', pageWidth / 2, 20, 'bold', '#4A00B7', contentWidth, 'center');
+                y += 10;
+                addText(`Generated on ${currentReportDate}`, pageWidth / 2, 9, 'normal', '#666666', contentWidth, 'center');
+                y += 15;
+                addText(`${currentStockSymbol} - ${currentCompanyName}`, pageWidth / 2, 16, 'bold', '#4A00B7', contentWidth, 'center');
+                y += 25;
+
+                // Report Summary
+                addText('Report Summary', margin, 14, 'bold', '#333333');
+                y += 12;
+
+                // Loop through summary data points to add labels bold
+                const summaryDataPoints = [
+                    { label: 'Company Name:', value: currentCompanyName },
+                    { label: 'Corporate Address:', value: currentAddress },
+                    { label: 'Stock Ticker:', value: currentStockSymbol },
+                    { label: 'Exchange:', value: summaryExchange.textContent },
+                    { label: 'Currency:', value: summaryCurrency.textContent },
+                    { label: 'Current Stock Price:', value: summaryCurrentPrice.textContent },
+                    { label: 'Target Price:', value: summaryTargetPrice.textContent }
+                ];
+
+                summaryDataPoints.forEach(item => {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor('#333333');
+                    doc.setFontSize(9);
+                    doc.text(item.label + ' ', margin, y); // Add space after label
+                    const labelWidth = doc.getTextWidth(item.label + ' ');
+                    doc.setFont('helvetica', 'normal'); // Set font back to normal for the value
+                    doc.text(item.value, margin + labelWidth, y);
+                    y += 9 * 1.15; // Advance y for the next line
+                });
+
+                // Recommendation (bold label and value, colored value)
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor('#333333');
+                doc.setFontSize(9);
+                doc.text('Recommendation: ', margin, y);
+
+                // Calculate width of the label to place the value next to it
+                const recommendationLabelWidth = doc.getTextWidth('Recommendation: ');
+
+                // Determine color for the recommendation value
+                let pdfRecommendationColor = '#333333'; // Default black
+                if (currentRecommendation === 'BUY') {
+                    pdfRecommendationColor = '#16A34A'; // Tailwind green-600
+                } else if (currentRecommendation === 'HOLD') {
+                    pdfRecommendationColor = '#2563EB'; // Tailwind blue-600
+                } else if (currentRecommendation === 'SELL') {
+                    pdfRecommendationColor = '#DC2626'; // Tailwind red-600
+                }
+
+                // Print the recommendation value (BUY/HOLD/SELL) bold and colored, next to the label
+                doc.setFont('helvetica', 'bold'); // Ensure value is also bold
+                doc.setTextColor(pdfRecommendationColor);
+                doc.text(currentRecommendation, margin + recommendationLabelWidth, y);
+                y += 9 * 1.15; // Advance y for the next line
+
+                y += 15; // Spacing for Company Description
+                addText('Company Description:', margin, 11, 'bold', '#333333');
+                y += 4;
+                addText(currentDescription, margin, 9, 'normal', '#333333', contentWidth);
+                y += 15;
+
+                // Market Data
+                if (y + 130 > pageHeight - margin) addNewPage();
+                addText('Market Data', margin, 14, 'bold', '#333333');
+                y += 12;
+                addText('Real-time Metrics', margin, 11, 'bold', '#333333');
+                y += 4;
+                for (const label in currentRealtimeMetrics) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor('#333333');
+                    doc.setFontSize(9);
+                    doc.text(`${label}: `, margin, y);
+                    const labelWidth = doc.getTextWidth(`${label}: `);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(currentRealtimeMetrics[label], margin + labelWidth, y);
+                    y += 9 * 1.15;
+                }
+                y += 10;
+                addText('Valuation Metrics', margin, 11, 'bold', '#333333');
+                y += 4;
+                for (const label in currentValuationMetrics) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor('#333333');
+                    doc.setFontSize(9);
+                    doc.text(`${label}: `, margin, y);
+                    const labelWidth = doc.getTextWidth(`${label}: `);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(currentValuationMetrics[label], margin + labelWidth, y);
+                    y += 9 * 1.15;
+                }
+                y += 15;
+
+                // Fundamentals & Drivers
+                if (y + 80 > pageHeight - margin) addNewPage();
+                addText('Fundamentals & Drivers', margin, 14, 'bold', '#333333');
+                y += 12;
+                addText(aiContent.fundamentals, margin, 9, 'normal', '#333333', contentWidth);
+                y += 15;
+
+                // Management
+                if (y + 80 > pageHeight - margin) addNewPage();
+                addText('Management', margin, 14, 'bold', '#333333');
+                y += 12;
+                addText(aiContent.management, margin, 9, 'normal', '#333333', contentWidth);
+                y += 15;
+
+                // Financials
+                if (y + 130 > pageHeight - margin) addNewPage();
+                addText('Financials', margin, 14, 'bold', '#333333');
+                y += 12;
+                addText('Annual Revenue', margin, 11, 'bold', '#333333');
+                y += 4;
+                if (currentAnnualRevenueData.length > 0) {
+                    currentAnnualRevenueData.forEach(data => {
+                        const parts = data.split(':');
+                        const label = parts[0].trim() + ':';
+                        const value = parts.slice(1).join(':').trim(); // Handle cases where value might have colons
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor('#333333');
+                        doc.setFontSize(9);
+                        doc.text(label + ' ', margin, y);
+                        const labelWidth = doc.getTextWidth(label + ' ');
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(value, margin + labelWidth, y);
+                        y += 9 * 1.15;
+                    });
+                } else {
+                    addText('No annual revenue data available.', margin, 9, 'normal', '#888888');
+                }
+                y += 10;
+                addText('Annual EPS', margin, 11, 'bold', '#333333');
+                y += 4;
+                if (currentAnnualEpsData.length > 0) {
+                    currentAnnualEpsData.forEach(data => {
+                        const parts = data.split(':');
+                        const label = parts[0].trim() + ':';
+                        const value = parts.slice(1).join(':').trim();
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor('#333333');
+                        doc.setFontSize(9);
+                        doc.text(label + ' ', margin, y);
+                        const labelWidth = doc.getTextWidth(label + ' ');
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(value, margin + labelWidth, y);
+                        y += 9 * 1.15;
+                    });
+                } else {
+                    addText('No annual EPS data available.', margin, 9, 'normal', '#888888');
+                }
+                y += 10;
+                addText('Quarterly Recap & Guidance', margin, 11, 'bold', '#333333');
+                y += 4;
+                addText(aiContent.guidance, margin, 9, 'normal', '#333333', contentWidth);
+                y += 15;
+
+                // Competition & Production
+                if (y + 80 > pageHeight - margin) addNewPage();
+                addText('Competition & Production', margin, 14, 'bold', '#333333');
+                y += 12;
+                addText(aiContent.competition, margin, 9, 'normal', '#333333', contentWidth);
+                y += 15;
+
+                // Risks
+                if (y + 80 > pageHeight - margin) addNewPage();
+                addText('Risks', margin, 14, 'bold', '#333333');
+                y += 12;
+                addText(aiContent.risks, margin, 9, 'normal', '#333333', contentWidth);
+                y += 15;
+
+                // Valuation
+                if (y + 130 > pageHeight - margin) addNewPage();
+                addText('Valuation', margin, 14, 'bold', '#333333');
+                y += 12;
+
+                // Valuation Summary data points
+                const valuationSummaryDataPoints = [
+                    { label: 'Current P/E:', value: currentValuationSummary['Current P/E'] },
+                    { label: 'Trailing 12-Month EPS Growth:', value: currentValuationSummary['Trailing 12-Month EPS Growth'] }
+                ];
+
+                valuationSummaryDataPoints.forEach(item => {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor('#333333');
+                    doc.setFontSize(9);
+                    doc.text(item.label + ' ', margin, y);
+                    const labelWidth = doc.getTextWidth(item.label + ' ');
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(item.value, margin + labelWidth, y);
+                    y += 9 * 1.15;
+                });
+
+                y += 10;
+                addText('Revenue Forecast', margin, 11, 'bold', '#333333');
+                y += 4;
+                addText(aiContent.revenueForecast, margin, 9, 'normal', '#333333', contentWidth);
+                y += 10;
+                addText('Target Price', margin, 11, 'bold', '#333333');
+                y += 4;
+                addText(aiContent.targetPrice, margin, 9, 'normal', '#333333', contentWidth);
+                y += 15;
+
+                // Bottom Line
+                if (y + 80 > pageHeight - margin) addNewPage();
+                addText('Bottom Line', margin, 14, 'bold', '#333333');
+                y += 12;
+                addText(aiContent.bottomLine, margin, 9, 'normal', '#333333', contentWidth);
+                y += 15;
+
+                // --- End PDF Content Generation ---
+
+                // Save the PDF
+                doc.save(`${currentStockSymbol.replace(' - ', '_')}_Stock_Report.pdf`);
+                console.log("Programmatic PDF generation complete.");
+
+                loadingIndicator.classList.add('hidden'); // Hide generic loading
+                downloadPdfButton.style.display = 'block'; // Show the download button again
+                downloadWordButton.style.display = 'block'; // Show the Word download button again
+            });
+
+            // Event listener for Download Word button
+            downloadWordButton.addEventListener('click', async () => {
+                console.log("Download Word button clicked. Initiating programmatic DOCX generation.");
+                console.log("Checking docx library:", window.docx); // Debugging: Check if docx is defined
+
+                // Ensure docx is available before proceeding
+                if (typeof window.docx === 'undefined') {
+                    console.error("docx library is not loaded or not available globally.");
+                    showModal('Library Error', 'The Word document generation library is not loaded. Please try refreshing the page.');
+                    loadingIndicator.classList.add('hidden');
+                    downloadPdfButton.style.display = 'block';
+                    downloadWordButton.style.display = 'block';
+                    return;
+                }
+
+
+                const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } = window.docx; // Explicitly use window.docx
+
+                // Hide the download buttons just before DOCX generation
+                downloadPdfButton.style.display = 'none';
+                downloadWordButton.style.display = 'none';
+                loadingIndicator.classList.remove('hidden'); // Show generic loading for DOCX generation
+
+                // Retrieve current report data from DOM (assuming it's already displayed)
+                const currentStockSymbol = summaryTicker.textContent;
+                const currentCompanyName = summaryCompanyName.textContent;
+                const currentReportDate = reportDate.textContent;
+                const currentDescription = summaryDescription.textContent;
+                const currentAddress = summaryAddress.textContent; // Get address for Word
+                const currentRecommendation = summaryRecommendation.textContent; // NEW: Get recommendation for Word
+
+                const currentRealtimeMetrics = {
+                    'Current Price': currentPrice.textContent,
+                    'Today's Open': openPrice.textContent,
+                    'Day High': dayHigh.textContent,
+                    'Day Low': dayLow.textContent,
+                    'Daily Volume': volume.textContent
+                };
+
+                const currentValuationMetrics = {
+                    'Market Cap': marketCap.textContent,
+                    'Shares Outstanding': sharesOutstanding.textContent,
+                    'P/E Ratio': peRatio.textContent,
+                    'Beta': beta.textContent,
+                    'Dividend Yield': dividendYield.textContent
+                };
+
+                const currentAnnualRevenueData = [];
+                annualRevenueData.querySelectorAll('.data-point').forEach(dp => {
+                    const label = dp.querySelector('.data-label').textContent.replace(':', '');
+                    const value = dp.querySelector('.data-value').textContent;
+                    currentAnnualRevenueData.push({ label: label, value: value });
+                });
+
+                const currentAnnualEpsData = [];
+                annualEpsData.querySelectorAll('.data-point').forEach(dp => {
+                    const label = dp.querySelector('.data-label').textContent.replace(':', '');
+                    const value = dp.querySelector('.data-value').textContent;
+                    currentAnnualEpsData.push({ label: label, value: value });
+                });
+
+                const currentValuationSummary = {
+                    'Current P/E': currentPe.textContent,
+                    'Trailing 12-Month EPS Growth': ttmEpsGrowth.textContent
+                };
+
+                // AI-generated content (make sure these inputs are populated from the live data)
+                const aiContent = {
+                    fundamentals: fundamentalsInput.textContent,
+                    management: managementInput.textContent,
+                    guidance: guidanceInput.textContent,
+                    competition: competitionInput.textContent,
+                    risks: risksInput.textContent,
+                    targetPrice: targetPriceInput.textContent,
+                    revenueForecast: revenueForecastInput.textContent,
+                    bottomLine: bottomLineInput.textContent,
+                    recommendation: currentRecommendation // Use the already displayed recommendation
+                };
+
+                // Helper to create metric table rows
+                const createMetricTable = (metricsObject) => {
+                    return new Table({
+                        rows: [
+                            ...Object.entries(metricsObject).map(([label, value]) => {
+                                return new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph({ text: label, style: 'TableLabel' })],
+                                            width: { size: 50, type: WidthType.PERCENTAGE },
+                                            borders: {
+                                                top: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                bottom: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                left: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                right: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                            },
+                                            margins: { top: 0, bottom: 0, left: 10, right: 10 }, // Minimal margins
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({ text: value, style: 'TableValue' })],
+                                            width: { size: 50, type: WidthType.PERCENTAGE },
+                                            borders: {
+                                                top: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                bottom: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                left: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                right: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                            },
+                                            margins: { top: 0, bottom: 0, left: 10, right: 10 }, // Minimal margins
+                                        }),
+                                    ],
+                                });
+                            }),
+                        ],
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        columnWidths: [4500, 4500], // Adjust these if columns are uneven
+                        borders: {
+                            top: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            bottom: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            left: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            right: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            insideHorizontal: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            insideVertical: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                        },
+                    });
+                };
+
+                // Helper to create annual data tables
+                const createAnnualDataTable = (dataArray) => {
+                    if (dataArray.length === 0) {
+                        return [new Paragraph({ text: 'No data available.', style: 'Normal' })];
+                    }
+                    return [new Table({
+                        rows: [
+                            ...dataArray.map(data => {
+                                return new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph({ text: data.label, style: 'TableLabel' })],
+                                            width: { size: 50, type: WidthType.PERCENTAGE },
+                                            borders: {
+                                                top: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                bottom: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                left: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                right: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                            },
+                                            margins: { top: 0, bottom: 0, left: 10, right: 10 }, // Minimal margins
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({ text: data.value, style: 'TableValue' })],
+                                            width: { size: 50, type: WidthType.PERCENTAGE },
+                                            borders: {
+                                                top: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                bottom: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                left: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                                right: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                                            },
+                                            margins: { top: 0, bottom: 0, left: 10, right: 10 }, // Minimal margins
+                                        }),
+                                    ],
+                                });
+                            }),
+                        ],
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        columnWidths: [4500, 4500],
+                        borders: {
+                            top: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            bottom: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            left: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            right: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            insideHorizontal: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                            insideVertical: { style: docx.BorderStyle.NIL, size: 0, color: "auto" },
+                        },
+                    })];
+                };
+
+                // Array to hold all document children
+                const docChildren = [];
+
+                // Main Title
+                docChildren.push(new Paragraph({
+                    text: 'Stock Analysis Report',
+                    alignment: docx.AlignmentType.CENTER,
+                    style: 'ReportTitle',
+                }));
+                docChildren.push(new Paragraph({
+                    text: `Generated on ${currentReportDate}`,
+                    alignment: docx.AlignmentType.CENTER,
+                    style: 'ReportDate',
+                }));
+                docChildren.push(new Paragraph({
+                    text: `${currentStockSymbol} - ${currentCompanyName}`,
+                    alignment: docx.AlignmentType.CENTER,
+                    style: 'CompanyName',
+                }));
+
+                // Add space above Report Summary
+                docChildren.push(new Paragraph({ text: '', spacing: { before: 240 } }));
+
+                // Report Summary
+                docChildren.push(new Paragraph({
+                    text: 'Report Summary',
+                    style: 'Heading2',
+                }));
+                docChildren.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `Company Name: `, bold: true }),
+                        new TextRun(currentCompanyName),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+                docChildren.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `Corporate Address: `, bold: true }),
+                        new TextRun(currentAddress),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+                docChildren.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `Stock Ticker: `, bold: true }),
+                        new TextRun(currentStockSymbol),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+                docChildren.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `Exchange: `, bold: true }),
+                        new TextRun(summaryExchange.textContent),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+                docChildren.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `Currency: `, bold: true }),
+                        new TextRun(summaryCurrency.textContent),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+                docChildren.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `Current Stock Price: `, bold: true }),
+                        new TextRun(summaryCurrentPrice.textContent),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+                docChildren.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `Target Price: `, bold: true }),
+                        new TextRun(summaryTargetPrice.textContent),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+
+                const docxRecommendationColor = {
+                    'BUY': '16A34A', // Green-600
+                    'HOLD': '2563EB', // Blue-600
+                    'SELL': 'DC2626'  // Red-600
+                }[currentRecommendation] || '333333'; // Default to black
+                docChildren.push(new Paragraph({ // Add Recommendation to Word with color
+                    children: [
+                        new TextRun({ text: `Recommendation: `, bold: true }), // Made label bold again
+                        new TextRun({ text: currentRecommendation, bold: true, color: docxRecommendationColor }),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+                docChildren.push(new Paragraph({ text: '', spacing: { before: 120 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Company Description',
+                    style: 'Heading3',
+                }));
+                docChildren.push(new Paragraph({
+                    text: currentDescription,
+                    style: 'Normal',
+                }));
+
+                // Market Data
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 360 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Market Data',
+                    style: 'Heading2',
+                }));
+                docChildren.push(new Paragraph({ text: '', spacing: { before: 120 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Real-time Metrics',
+                    style: 'Heading3',
+                }));
+                docChildren.push(createMetricTable(currentRealtimeMetrics));
+                docChildren.push(new Paragraph({ text: '', spacing: { before: 120 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Valuation Metrics',
+                    style: 'Heading3',
+                }));
+                docChildren.push(createMetricTable(currentValuationMetrics));
+
+                // Fundamentals & Drivers
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 360 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Fundamentals & Drivers',
+                    style: 'Heading2',
+                }));
+                docChildren.push(new Paragraph({
+                    text: aiContent.fundamentals,
+                    style: 'Normal',
+                }));
+
+                // Management
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 360 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Management',
+                    style: 'Heading2',
+                }));
+                docChildren.push(new Paragraph({
+                    text: aiContent.management,
+                    style: 'Normal',
+                }));
+
+                // Financials
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 360 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Financials',
+                    style: 'Heading2',
+                }));
+                docChildren.push(new Paragraph({ text: '', spacing: { before: 120 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Annual Revenue',
+                    style: 'Heading3',
+                }));
+                docChildren.push(...createAnnualDataTable(currentAnnualRevenueData));
+                docChildren.push(new Paragraph({ text: '', spacing: { before: 120 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Annual EPS',
+                    style: 'Heading3',
+                }));
+                docChildren.push(...createAnnualDataTable(currentAnnualEpsData));
+                docChildren.push(new Paragraph({ text: '', spacing: { before: 120 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Quarterly Recap & Guidance',
+                    style: 'Heading3',
+                }));
+                docChildren.push(new Paragraph({
+                    text: aiContent.guidance,
+                    style: 'Normal',
+                }));
+
+                // Competition & Production
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 360 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Competition & Production',
+                    style: 'Heading2',
+                }));
+                docChildren.push(new Paragraph({
+                    text: aiContent.competition,
+                    style: 'Normal',
+                }));
+
+                // Risks
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 360 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Risks',
+                    style: 'Heading2',
+                }));
+                docChildren.push(new Paragraph({
+                    text: aiContent.risks,
+                    style: 'Normal',
+                }));
+
+                // Valuation
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 360 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Valuation',
+                    style: 'Heading2',
+                }));
+                docChildren.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `Current P/E: `, bold: true }),
+                        new TextRun(currentValuationSummary['Current P/E']),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+                docChildren.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `Trailing 12-Month EPS Growth: `, bold: true }),
+                        new TextRun(currentValuationSummary['Trailing 12-Month EPS Growth']),
+                    ],
+                    style: 'NormalSmallSpace',
+                }));
+                docChildren.push(new Paragraph({ text: '', spacing: { before: 120 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Revenue Forecast',
+                    style: 'Heading3',
+                }));
+                docChildren.push(new Paragraph({
+                    text: aiContent.revenueForecast,
+                    style: 'Normal',
+                }));
+                docChildren.push(new Paragraph({ text: '', spacing: { before: 120 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Target Price',
+                    style: 'Heading3',
+                }));
+                docChildren.push(new Paragraph({
+                    text: aiContent.targetPrice,
+                    style: 'Normal',
+                }));
+
+                // Bottom Line
+                docChildren.push(new Paragraph({ text: '', spacing: { after: 360 } }));
+                docChildren.push(new Paragraph({
+                    text: 'Bottom Line',
+                    style: 'Heading2',
+                }));
+                docChildren.push(new Paragraph({
+                    text: aiContent.bottomLine,
+                    style: 'Normal',
+                }));
+
+                // Create the document
+                const doc = new Document({
+                    sections: [{
+                        properties: {
+                            page: {
+                                margin: {
+                                    top: 720,    // 0.5 inch (72 points per inch * 0.5)
+                                    right: 720,  // 0.5 inch
+                                    bottom: 720, // 0.5 inch
+                                    left: 720,   // 0.5 inch
+                                },
+                            },
+                        },
+                        children: docChildren, // Use the dynamically built children array
+                    }],
+                    // Custom styles for consistent look (similar to PDF)
+                    styles: {
+                        paragraphStyles: [
+                            {
+                                id: 'ReportTitle',
+                                name: 'Report Title',
+                                basedOn: 'Normal',
+                                next: 'Normal',
+                                quickFormat: true,
+                                run: {
+                                    size: 32, // Smaller font size for Report Title
+                                    bold: true,
+                                    color: '#4A00B7', // Indigo color
+                                    font: 'Inter',
+                                },
+                                spacing: { before: 80, after: 120 }, // Increased spacing after title
+                            },
+                            {
+                                id: 'ReportDate',
+                                name: 'Report Date',
+                                basedOn: 'Normal',
+                                next: 'Normal',
+                                quickFormat: true,
+                                run: {
+                                    size: 14, // Smaller font size
+                                    color: '#666666',
+                                    font: 'Inter',
+                                },
+                                spacing: { after: 40 },
+                            },
+                            {
+                                id: 'CompanyName',
+                                name: 'Company Name',
+                                basedOn: 'Normal',
+                                next: 'Normal',
+                                quickFormat: true,
+                                run: {
+                                    size: 24, // Smaller font size
+                                    bold: true,
+                                    color: '#4A00B7',
+                                    font: 'Inter',
+                                },
+                                spacing: { after: 100 }, // Increased spacing after company name
+                            },
+                            {
+                                id: 'Heading2',
+                                name: 'Heading 2',
+                                basedOn: 'Normal',
+                                next: 'Normal',
+                                quickFormat: true,
+                                run: {
+                                    size: 20, // Smaller font size
+                                    bold: true,
+                                    color: '#333333',
+                                    font: 'Inter',
+                                },
+                                spacing: { before: 0, after: 30 }, // Resetting before spacing here, relying on explicit blank paragraphs
+                            },
+                            {
+                                id: 'Heading3',
+                                name: 'Heading 3',
+                                basedOn: 'Normal',
+                                next: 'Normal',
+                                quickFormat: true,
+                                run: {
+                                    size: 16, // Smaller font size
+                                    bold: true,
+                                    color: '#333333',
+                                    font: 'Inter',
+                                },
+                                spacing: { before: 0, after: 15 }, // Resetting to 0 here as we'll use explicit blank paragraphs for sub-headings
+                            },
+                            {
+                                id: 'Normal', // Default paragraph style for main text blocks
+                                name: 'Normal',
+                                run: {
+                                    size: 14, // Smaller font size for body text
+                                    font: 'Inter',
+                                },
+                                spacing: { after: 20 },
+                            },
+                             {
+                                id: 'NormalSmallSpace', // New style for list-like items (e.g., summary)
+                                name: 'Normal Small Space',
+                                basedOn: 'Normal',
+                                next: 'Normal',
+                                quickFormat: true, // Added quickFormat
+                                run: {
+                                    size: 14, // Smaller font size
+                                    font: 'Inter',
+                                },
+                                spacing: { after: 10 },
+                            },
+                            {
+                                id: 'TableLabel',
+                                name: 'Table Label',
+                                basedOn: 'Normal',
+                                next: 'Normal',
+                                quickFormat: true, // Added quickFormat
+                                run: {
+                                    size: 14, // Smaller font size
+                                    bold: true,
+                                    font: 'Inter',
+                                },
+                                spacing: { before: 5, after: 5 },
+                            },
+                            {
+                                id: 'TableValue',
+                                name: 'Table Value',
+                                basedOn: 'Normal',
+                                next: 'Normal',
+                                quickFormat: true, // Added quickFormat
+                                run: {
+                                    size: 14, // Smaller font size
+                                    font: 'Inter',
+                                },
+                                spacing: { before: 5, after: 5 },
+                            },
+                        ],
+                    },
+                });
+
+                // Generate and download the Word document
+                Packer.toBlob(doc).then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${currentStockSymbol.replace(' - ', '_')}_Stock_Report.docx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    console.log("Programmatic DOCX generation complete.");
+
+                    loadingIndicator.classList.add('hidden'); // Hide generic loading
+                    downloadPdfButton.style.display = 'block'; // Show the download button again
+                    downloadWordButton.style.display = 'block'; // Show the Word download button again
+                }).catch(error => {
+                    console.error("Error generating DOCX:", error);
+                    showModal('DOCX Generation Error', `Could not generate Word document: ${error.message}`);
+                    loadingIndicator.classList.add('hidden');
+                    downloadPdfButton.style.display = 'block';
+                    downloadWordButton.style.display = 'block';
+                });
+            });
+        }); // End of DOMContentLoaded
+    </script>
+</body>
+</html>
